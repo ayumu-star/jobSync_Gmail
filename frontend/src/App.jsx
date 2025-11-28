@@ -1,35 +1,58 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// frontend/src/App.jsx
+import React from "react";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
+import HomePage from "./pages/HomePage";
+import CalendarPage from "./pages/CalendarPage";
+import EmailReviewPage from "./pages/EmailReviewPage";
+import EventDetailPage from "./pages/EventDetailPage";
+
+function Header() {
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <header className="app-header">
+      <div className="app-title">
+        Tech Select
+        <span>就活イベント整理アプリ</span>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      <nav className="nav-links">
+        <Link
+          to="/"
+          className={`nav-link ${isActive("/") ? "nav-link-active" : ""}`}
+        >
+          ホーム
+        </Link>
+        <Link
+          to="/calendar"
+          className={`nav-link ${
+            isActive("/calendar") ? "nav-link-active" : ""
+          }`}
+        >
+          カレンダー
+        </Link>
+      </nav>
+    </header>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <div className="app-root">
+      <div className="app-shell">
+        <Header />
+
+        <main className="page">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/emails/:id" element={<EmailReviewPage />} />
+            <Route path="/events/:id" element={<EventDetailPage />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}
