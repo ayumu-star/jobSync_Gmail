@@ -1,51 +1,40 @@
 # backend/app/api/events.py
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user_id
-from app.database import get_db
-from app.models.event import Event
+from app.core.deps import get_db, get_current_user_id
 from app.schemas.event import EventRead
+from app.models.event import Event
+from app.services.gmail_sync import sync_gmail_messages
 
-router = APIRouter(tags=["events"])
+router = APIRouter(prefix="/events", tags=["events"])
 
 
-@router.get("/events", response_model=List[EventRead])
-async def list_events(
-    user_id: str = Depends(get_current_user_id),
+@router.post("/sync", response_model=list[EventRead])
+def sync_events(
     db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
 ):
     """
-    ログインユーザーの Event 一覧を返す
+    Gmail からメールを同期して events を更新し、その一覧を返す
+    """
+    events = sync_gmail_messages(db, user_id)
+    return events
+
+
+@router.get("/", response_model=list[EventRead])
+def list_events(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    """
+    現在登録されている予定一覧を返す
     """
     events = (
         db.query(Event)
-        .join(Event.user)
-        .filter(Event.user.has(google_sub=user_id))
-        .order_by(Event.start_at.is_(None), Event.start_at)
+        .filter(Event.user_id == user_id)
+        .order_by(Event.start_at)
         .all()
     )
-    return [EventRead.model_validate(ev) for ev in events]
-
-
-@router.get("/events/{event_id}", response_model=EventRead)
-async def get_event(
-    event_id: int,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    """
-    単一 Event の詳細
-    """
-    ev = (
-        db.query(Event)
-        .join(Event.user)
-        .filter(Event.id == event_id, Event.user.has(google_sub=user_id))
-        .first()
-    )
-    if not ev:
-        raise HTTPException(status_code=404, detail="イベントが見つかりません")
-    return EventRead.model_validate(ev)
+    return events
 

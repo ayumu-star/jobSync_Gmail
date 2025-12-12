@@ -1,30 +1,80 @@
-// frontend/src/pages/CalendarPage.jsx
-import React from "react";
-import { mockEvents } from "../mockData";
+import { useEffect, useState } from "react";
+import { api } from "../api";   // ★ ここを変更
 
 export default function CalendarPage() {
-  return (
-    <div className="page">
-      <section>
-        <h2 className="section-title">カレンダー（プロトタイプ）</h2>
-        <p className="section-subtitle">
-          本番では月表示のカレンダーを実装予定です。現状は簡易的に、日付ごとのイベントを一覧で確認できます。
-        </p>
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState(null);
 
-        <div className="list-stack">
-          {mockEvents.map((ev) => (
-            <div key={ev.id} className="card">
-              <div className="card-meta">
-                {ev.date} {ev.time}
-              </div>
-              <div className="card-title">{ev.title}</div>
-              <div className="card-sub">
-                {ev.company} ／ {ev.type} ／ {ev.location}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.fetchEvents();   // ★ 修正
+      setEvents(data);
+    } catch (e) {
+      setError(e.message ?? "イベント取得に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      setError(null);
+      const data = await api.syncEvents();   // ★ 修正
+      setEvents(data);
+    } catch (e) {
+      setError(e.message ?? "同期に失敗しました");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <div className="page calendar-page">
+      <h1>就活カレンダー</h1>
+
+      <button onClick={handleSync} disabled={syncing}>
+        {syncing ? "同期中..." : "Gmailから同期"}
+      </button>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {loading ? (
+        <p>読み込み中...</p>
+      ) : events.length === 0 ? (
+        <p>まだ予定がありません。</p>
+      ) : (
+        <table className="events-table">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>時間</th>
+              <th>会社</th>
+              <th>タイトル</th>
+              <th>状態</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map(ev => (
+              <tr key={ev.id}>
+                <td>{ev.start_at.slice(0, 10)}</td>
+                <td>{ev.start_at.slice(11, 16)}</td>
+                <td>{ev.company_name ?? "-"}</td>
+                <td>{ev.title}</td>
+                <td>{ev.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

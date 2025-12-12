@@ -1,22 +1,23 @@
-# backend/app/schemas/event.py
+# app/schemas/event.py
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
-
-class EventRead(BaseModel):
-    id: int
-    user_id: int
-    source_email_id: int | None = None
-    title: str
+class EventBase(BaseModel):
     company_name: str | None = None
+    title: str
     event_type: str
-    start_at: datetime | None = None
+    start_at: datetime
     end_at: datetime | None = None
     location: str | None = None
+    memo: str | None = None
+    source: str
     status: str
-    source: str | None = None
+
+class EventRead(EventBase):
+    id: int
+    email_id: int | None
     created_at: datetime
     updated_at: datetime
 
-    # ★ ORM オブジェクトからの変換を許可
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
