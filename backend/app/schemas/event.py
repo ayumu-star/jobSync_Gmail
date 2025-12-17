@@ -1,6 +1,7 @@
 # app/schemas/event.py
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 class EventBase(BaseModel):
     company_name: str | None = None
@@ -21,3 +22,13 @@ class EventRead(EventBase):
 
     class Config:
         orm_mode = True
+
+class EventUpdate(BaseModel):
+    company_name: Optional[str] = None
+    title: Optional[str] = None
+    event_type: Optional[str] = None
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    location: Optional[str] = None
+    memo: Optional[str] = None
+    status: Optional[str] = None

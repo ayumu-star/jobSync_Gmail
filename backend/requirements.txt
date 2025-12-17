@@ -3,6 +3,9 @@ uvicorn[standard]
 python-dotenv
 itsdangerous==2.1.2
 
+psycopg2-binary
+sqlalchemy
+
 # Google OAuth & Gmail API
 google-auth
 google-auth-oauthlib

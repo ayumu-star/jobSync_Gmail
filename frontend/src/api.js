@@ -60,5 +60,26 @@ export const api = {
       method: "POST",
     });
   },
+
+  // src/api.js の export const api = { ... } の中に追加
+
+  getEvent(id) {
+    return apiFetch(`/api/events/${id}`);
+  },
+
+  updateEvent(id, payload) {
+    return apiFetch(`/api/events/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteEvent(id) {
+    return apiFetch(`/api/events/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+
 };
 

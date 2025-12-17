@@ -101,22 +101,23 @@ def _upsert_email(db: Session, user_id: int, gm: dict) -> Email:
     db.refresh(email)
     return email
 
-
 def _parse_email_to_event(db: Session, user_id: int, email: Email) -> None:
     """
     emails テーブルに保存された 1 通のメールから、events を 0 or 1 件生成/更新
     """
     subject = email.subject or ""
-    body    = email.body_plain or ""
-    text    = subject + "\n" + body
+    body = email.body_plain or ""
+    text = subject + "\n" + body
 
     # 就活っぽいメールだけ対象にする（暫定ルール）
-    if not any(k in text for k in ["説明会", "面接", "選考", "インターン"]):
+    if not any(k in text for k in ["説明会", "面接", "選考", "インターン", "グループディスカッション", "GD"]):
         email.processing_status = "parsed"
         db.commit()
         return
 
-    # 日付（ザックリなパターン。後で強化していけばOK）
+    # -----------------------------
+    # ① 日付・時刻抽出（まずは今の簡易版）
+    # -----------------------------
     date_match = re.search(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", text)
     time_match = re.search(r"(\d{1,2}):(\d{2})", text)
     if not date_match or not time_match:
@@ -128,24 +129,32 @@ def _parse_email_to_event(db: Session, user_id: int, email: Email) -> None:
     hh, mm = map(int, time_match.groups())
     start_at = datetime(y, m, d, hh, mm, tzinfo=JST)
 
-    # ★ 会社名抽出ロジックを共通ヘルパーに委譲
-    company = extract_company_name(subject, body, email.from_address)
+    # -----------------------------
+    # ② 会社名抽出（ここが最重要の差し替えポイント）
+    # -----------------------------
+    from_address = email.from_address or ""
+    company = extract_company_name(subject=subject, body=body, from_address=from_address)
 
-    # タイトル（とりあえず件名そのまま）
+    # company が取れない場合の保険（NoneのままでOKなら不要）
+    if company is None:
+        company = None
+
+    # -----------------------------
+    # ③ タイトル（必要なら会社名を付け足す）
+    # -----------------------------
     title = subject or "面接/説明会"
 
-    # dedup_hash（重複登録防止用キー）
-    base = f"{user_id}|{company or ''}|{title}|{start_at.isoformat()}"
+    # -----------------------------
+    # ④ dedup_hash（重複登録防止）
+    # -----------------------------
+    base = f"{user_id}|{company}|{title}|{start_at.isoformat()}"
     dedup_hash = sha256(base.encode("utf-8")).hexdigest()
 
     now = datetime.now(JST)
 
     ev = (
         db.query(Event)
-        .filter(
-            Event.user_id == user_id,
-            Event.dedup_hash == dedup_hash,
-        )
+        .filter(Event.user_id == user_id, Event.dedup_hash == dedup_hash)
         .first()
     )
 
@@ -155,7 +164,7 @@ def _parse_email_to_event(db: Session, user_id: int, email: Email) -> None:
             email_id=email.id,
             company_name=company,
             title=title,
-            event_type="interview",  # TODO: 内容に応じて後で賢くする
+            event_type="interview",  # 後で賢くする
             start_at=start_at,
             end_at=None,
             location=None,
@@ -168,10 +177,9 @@ def _parse_email_to_event(db: Session, user_id: int, email: Email) -> None:
         )
         db.add(ev)
     else:
-        # 既存イベントがある場合は更新だけ
+        # 既存があれば必要に応じて更新
         ev.company_name = company or ev.company_name
         ev.title = title or ev.title
-        ev.start_at = start_at
         ev.updated_at = now
 
     email.processing_status = "parsed"
