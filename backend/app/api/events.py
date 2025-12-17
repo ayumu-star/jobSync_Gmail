@@ -8,7 +8,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_db, get_current_user_id
+from app.core.deps import get_current_user_id
+from app.database import get_db
 from app.schemas.event import EventRead, EventUpdate  # ★ EventUpdate を追加で用意してね
 from app.models.event import Event
 from app.services.gmail_sync import sync_gmail_messages
