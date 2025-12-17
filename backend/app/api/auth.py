@@ -47,6 +47,7 @@ async def google_auth(body: GoogleAuthRequest, request: Request, db: Session = D
             db.refresh(user)
 
         # セッションに保存
+        request.session["user_id"] = user.id
         request.session["google_id"] = google_sub
         request.session["email"] = user.email
         request.session["name"] = user.name
@@ -86,17 +87,22 @@ async def logout(request: Request):
 
 
 @router.get("/user")
-async def get_user(request: Request):
-    """現在ログイン中のユーザー情報を取得"""
+async def get_user(request: Request, db: Session = Depends(get_db)):
     session = request.session
-    if "google_id" not in session:
+    google_sub = session.get("google_id")
+    if not google_sub:
         raise HTTPException(status_code=401, detail="未ログイン")
 
-    gmail_authorized = has_valid_token(session["google_id"])
+    user = db.query(User).filter(User.google_sub == google_sub).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    gmail_authorized = has_valid_token(user.id)
 
     return {
-        "google_id": session["google_id"],
+        "google_id": google_sub,
         "email": session.get("email"),
         "name": session.get("name"),
         "gmail_authorized": gmail_authorized,
     }
+
