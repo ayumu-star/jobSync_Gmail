@@ -81,12 +81,12 @@ def get_email_body(payload: dict):
     return body_data if body_data is not None else parts_data
 
 
-def get_user_token_path(user_id: str) -> Path:
+def get_user_token_path(user_id: int) -> Path:
     """ユーザーごとのtoken.jsonパスを返す"""
     return TOKENS_DIR / f"{user_id}.json"
 
 
-def get_credentials(user_id: str) -> Credentials | None:
+def get_credentials(user_id: int) -> Credentials | None:
     """ユーザーの認証情報を取得（必要なら更新）"""
     token_path = get_user_token_path(user_id)
 
@@ -103,7 +103,7 @@ def get_credentials(user_id: str) -> Credentials | None:
     return creds
 
 
-def get_emails(user_id: str, max_results: int = 10):
+def get_emails(user_id: int, max_results: int = 10):
     """指定ユーザーのGmailからメールを取得してリストで返す"""
     creds = get_credentials(user_id)
     if not creds:

@@ -24,6 +24,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "FRONTEND_BASE_URL",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -35,10 +36,9 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET_KEY,
     same_site="lax",
-    https_only=False,  # 本番では True + HTTPS
+    https_only=True,
 )
 
-# --- ルーター登録 ---
 app.include_router(auth_router, prefix="/api")
 app.include_router(gmail_router, prefix="/api")
 app.include_router(events_router, prefix="/api")  # ここで /api/events が生える
